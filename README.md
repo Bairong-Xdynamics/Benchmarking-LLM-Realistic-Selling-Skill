@@ -86,7 +86,7 @@ The system utilizes a dual-metric approach:
 
 Overall performance (SalesLLM Score) on 1,000 Chinese and 805 English scripts. 'Custom' indicates the model is evaluated against our **CustomerLM** user simulator.
 
-| **Assistant Model** | **User Model** | **Ours (ZH)** | **Ours (EN)** |
+| **Assistant Model** | **User Model** | **ZH** | **EN** |
 | :--- | :--- | :---: | :---: |
 | Doubao-32K | GPT-4o | 6.07 | 6.31 |
 | Qwen-max | GPT-4o | 6.02 | 5.97 |
