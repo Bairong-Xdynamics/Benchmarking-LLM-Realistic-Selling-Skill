@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>逐条对话评分系统 - 多文件</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <h1 class="text-2xl font-bold mb-4">逐条对话评分系统（4 文件并排）</h1>
+
+    <div id="score-instruction" class="mb-4 p-3 bg-yellow-100 text-yellow-800 rounded border border-yellow-300">
+        请根据对话的质量进行评分，1分为最低，10分为最高。<br> 
+        请从User购买意图和Assistant销售过程两个维度进行综合评估。<br>
+        1）<b>User购买意图</b>：<br>
+             &nbsp;&nbsp;2 表示User骂人，投诉。4 表示User有微弱意向，敷衍。6 表示User无购买意图。8 表示User可能有意向。10表示User有明确意向。<br>
+        2）<b>Assistan销售过程</b>：<br>
+             &nbsp;&nbsp;0–1 阻碍/倒退：对话使交易变差或被终止。2–3 无实质进展：未获关键信息，未锁定任何行动。4 轻微触动：出现意向迹象但无明确下一步或关键要素。5 有限推进：确认部分需求/价值；仅有模糊下一步或态度正面但未落地。6–7 清晰推进：出现一个具象推进点（关键要素被确认，或具体行动得到正面响应）。8–9 决定性推进：多个具象推进点或关键障碍被清除，促成里程碑式进展；或 user 明确口头同意购买但尚未触发流程。10 接近/达到成交：assistant 的引导直接促成口头同意购买并同步推进采购/合同签署/下单流程，或成交路径与时间表已明确并由 user 予以确认。<br>
+      
+        3) <b>评估原则（只看对交易推进的实际影响）</b>：<br>
+            &nbsp;&nbsp;- 以 user 的回应与后续行动为准；未被接纳或未引发行动的不计正向贡献。<br>
+            &nbsp;&nbsp;- 只评估购买意向提升/交易推进，不评价文案或礼貌。<br>
+            &nbsp;&nbsp;- 采用保守判定；证据不足时取较低档位。<br>
+            &nbsp;&nbsp;- 若推进主要由 user 自发推动，应降低对 assistant 的贡献评分。<br>
+    </div>
+
+    <!-- 5 个文件上传 + 下载 -->
+    <div class="flex space-x-4 mb-4">
+        <template id="file-btn-template">
+            <div class="flex flex-col items-center space-y-2">
+                <label class="w-36">
+                    <input type="file" accept=".jsonl" class="hidden file-input">
+                    <span class="inline-block w-full px-6 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded font-medium text-center cursor-pointer">
+                        上传文件
+                    </span>
+                </label>
+                <button class="download-btn w-36 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded font-medium">
+                    下载评分文件
+                </button>
+            </div>
+        </template>
+    </div>
+
+    <div id="file-btns" class="flex space-x-4 mb-4"></div>
+
+    <!-- 公用导航条 -->
+    <div id="progress-bar" class="flex space-x-2 mb-4 flex-wrap"></div>
+
+    <!-- 对话容器并排 -->
+<div id="dialog-containers" class="flex space-x-4">
+    <template id="dialog-template">
+        <div class="dialog-container bg-white p-4 shadow rounded w-1/4 flex flex-col h-[500px]">
+            <!-- 标题 -->
+            <div class="dialog-title font-bold mb-2"></div>
+            <!-- 对话滚动区域 -->
+            <div class="dialog-text flex-1 overflow-y-auto mb-2">
+                请上传数据
+            </div>
+            <!-- 评分按钮 -->
+            <div class="flex space-x-1 mb-2 score-buttons"></div>
+            <!-- 分数显示 -->
+            <div class="mb-2 font-bold text-green-600 score-display">未评分</div>
+            <!-- 撤销按钮 -->
+            <div class="flex space-x-2">
+                <button class="undo-btn bg-red-500 text-white px-2 py-1 rounded">撤销</button>
+            </div>
+        </div>
+    </template>
+</div>
+
+
+
+    <!-- 公用下一个按钮 -->
+    <div class="mt-4">
+        <button id="next-btn" class="bg-green-500 text-white px-3 py-1 rounded">下一批</button>
+    </div>
+
+    <script>
+        const NUM_FILES = 4;
+        const fileBtnsContainer = document.getElementById("file-btns");
+        const fileTemplate = document.getElementById("file-btn-template");
+        const dialogContainers = document.getElementById("dialog-containers");
+        const dialogTemplate = document.getElementById("dialog-template");
+
+        let conversationsList = Array(NUM_FILES).fill().map(()=>[]);
+        let scoresList = Array(NUM_FILES).fill().map(()=>({}));
+        let currentIndex = 0;
+
+        // 创建上传 + 下载按钮
+        for(let i=0;i<NUM_FILES;i++){
+            const clone = fileTemplate.content.cloneNode(true);
+            fileBtnsContainer.appendChild(clone);
+        }
+
+        // 创建对话容器
+        for(let i=0;i<NUM_FILES;i++){
+            const clone = dialogTemplate.content.cloneNode(true);
+            dialogContainers.appendChild(clone);
+        }
+
+        // 绑定上传事件
+document.querySelectorAll(".file-input").forEach((input, idx)=>{
+    input.addEventListener("change", async (event)=>{
+        const file = event.target.files[0];
+        if(!file) return;
+        const text = await file.text();
+        let rawConvs = text.split("\n")
+            .filter(line=>line.trim()!=="")
+            .map(line=>JSON.parse(line));
+
+        // 按 difficulty 分组，每种难度只取前 20 条
+        const grouped = {};
+        rawConvs.forEach(conv=>{
+            const level = conv.difficulty;
+            if(!grouped[level]) grouped[level] = [];
+            if(grouped[level].length < 20){
+                grouped[level].push(conv);
+            }
+        });
+
+        // 展平成数组
+        conversationsList[idx] = Object.values(grouped).flat();
+
+        // 初始化对应文件的评分数据
+        scoresList[idx] = {};
+
+        // 获取文件名第二个部分
+        let nameParts = file.name.split("_");
+        let displayName = nameParts.length > 1 ? nameParts[1] : file.name;
+
+        // 在对应对话容器顶部显示
+        const container = document.querySelectorAll(".dialog-container")[idx];
+        let titleDiv = container.querySelector(".dialog-title");
+        if(!titleDiv){
+            titleDiv = document.createElement("div");
+            titleDiv.className = "dialog-title font-bold mb-2";
+            container.prepend(titleDiv);
+        }
+        titleDiv.textContent = displayName;
+
+        // 渲染对话和导航
+        renderDialogs();
+        renderProgressBar();
+    });
+});
+
+
+        // 绑定下载事件
+        document.querySelectorAll(".download-btn").forEach((btn, idx)=>{
+            btn.addEventListener("click", ()=>{
+                const input = document.querySelectorAll(".file-input")[idx];
+                if(!input.files.length){
+                    alert("请先上传文件！");
+                    return;
+                }
+                const uploadedFileName = input.files[0].name;
+                const baseName = uploadedFileName.replace(/\.[^/.]+$/,"");
+                const data = JSON.stringify(scoresList[idx], null, 2);
+                const blob = new Blob([data], {type:"application/json"});
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `${baseName}_scores.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        });
+
+        function renderProgressBar(){
+            const bar = document.getElementById("progress-bar");
+            bar.innerHTML="";
+            const maxLength = Math.max(...conversationsList.map(c=>c.length));
+            for(let i=0;i<maxLength;i++){
+                const btn = document.createElement("button");
+                btn.textContent = i+1;
+                btn.className = "w-8 h-8 rounded-full text-white flex items-center justify-center bg-green-400";
+                btn.addEventListener("click", ()=>{
+                    currentIndex=i;
+                    renderDialogs();
+                });
+                bar.appendChild(btn);
+            }
+        }
+
+function updateProgressBar(){
+    const bar = document.getElementById("progress-bar");
+    const buttons = bar.querySelectorAll("button");
+
+    // 遍历每个按钮（每个对话索引）
+    buttons.forEach((btn, index)=>{
+        // 检查 5 个容器当前索引 index 是否都已评分
+        let allScored = true;
+        for(let i=0;i<NUM_FILES;i++){
+            const convs = conversationsList[i];
+            const scores = scoresList[i];
+            if(!convs[index]) continue; // 如果该容器该索引没有对话，跳过
+            if(!scores[convs[index].id]){
+                allScored = false;
+                break;
+            }
+        }
+
+        // 根据是否都评分改变颜色
+        if(allScored){
+            btn.classList.remove("bg-green-400");
+            btn.classList.add("bg-gray-500");
+        }else{
+            btn.classList.remove("bg-gray-500");
+            btn.classList.add("bg-green-400");
+        }
+    });
+}
+
+
+     function renderDialogs(){
+    document.querySelectorAll(".dialog-container").forEach((container, idx)=>{
+        const convs = conversationsList[idx];
+        const scores = scoresList[idx];
+        const dialogText = container.querySelector(".dialog-text");
+        const scoreDisplay = container.querySelector(".score-display");
+        const scoreButtonsContainer = container.querySelector(".score-buttons");
+        const undoBtn = container.querySelector(".undo-btn");
+
+        if(!convs.length || currentIndex>=convs.length){
+            dialogText.textContent = "没有更多对话了";
+            scoreButtonsContainer.innerHTML="";
+            scoreDisplay.textContent="";
+            undoBtn.disabled=true;
+            return;
+        }
+
+        const conv = convs[currentIndex];
+
+        // 清空之前内容
+        dialogText.innerHTML="";
+
+        function capitalize(str){
+            if(!str) return "";
+            return str.charAt(0).toUpperCase() + str.slice(1);
+        }
+
+        // 渲染泡泡
+        conv.messages.forEach(msg=>{
+            const msgContainer = document.createElement("div");
+            msgContainer.className = `mb-2 max-w-[70%] ` + (msg.role==="user"?"ml-auto text-right":"mr-auto text-left");
+
+            const roleDiv = document.createElement("div");
+            roleDiv.textContent = capitalize(msg.role);
+            roleDiv.className = "text-xs text-gray-500 mb-1";
+
+            const contentDiv = document.createElement("div");
+            contentDiv.textContent = msg.content;
+            contentDiv.className = `px-3 py-2 rounded ` + (msg.role==="user"?"bg-blue-500 text-white":"bg-gray-300 text-gray-800");
+
+            msgContainer.appendChild(roleDiv);
+            msgContainer.appendChild(contentDiv);
+            dialogText.appendChild(msgContainer);
+        });
+
+        const currentScore = scores[conv.id]??null;
+        scoreDisplay.textContent = currentScore?`${currentScore}分`:"未评分";
+
+        // 渲染评分按钮
+        scoreButtonsContainer.innerHTML="";
+        for(let s=1;s<=10;s++){
+            const btn = document.createElement("button");
+            btn.textContent = `${s}分`;
+            btn.disabled = !!currentScore;
+            btn.className = currentScore?"bg-gray-400 px-2 py-1 rounded":"bg-blue-500 hover:bg-blue-600 px-2 py-1 rounded text-white";
+            btn.addEventListener("click", ()=>{
+                scores[conv.id]=s;
+                renderDialogs();
+                updateProgressBar();
+            });
+            scoreButtonsContainer.appendChild(btn);
+        }
+
+        // 撤销按钮
+        undoBtn.disabled = currentScore===null;
+        undoBtn.onclick = ()=>{
+            delete scores[conv.id];
+            renderDialogs();
+            updateProgressBar();
+        };
+    });
+
+    // 渲染完对话后，滚动条回到顶部
+document.querySelectorAll(".dialog-container .dialog-text").forEach(container => {
+    container.scrollTop = 0;
+});
+
+}
+
+
+
+
+        document.getElementById("next-btn").addEventListener("click", ()=>{
+            currentIndex++;
+            renderDialogs();
+        });
+    </script>
+</body>
+</html>
