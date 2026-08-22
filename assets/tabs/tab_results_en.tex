@@ -1,0 +1,34 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Main evaluation results for 805 English scripts. 'Ours' indicates the SalesLLM scores. All the scores are averaged across the scripts amount. `Custom' indicates that the model is our user-based model.}
+\label{tab:main_res_tab_en}
+\begin{tabular}{ccc}
+\toprule
+\textbf{Assistant} & \textbf{User} & \textbf{Ours}\\
+\midrule
+Doubao-32K & GPT-4o & 6.31 \\
+Qwen-max & GPT-4o& 5.97   \\
+Deepseek-chat & GPT-4o& 6.1   \\
+GPT-4o & GPT-4o& 5.53  \\
+GLM4-0414-9B & GPT-4o& 5.92  \\
+GLM4.6 & GPT-4o& 5.64  \\
+Gemini 2.5 pro & GPT-4o& \textbf{6.39}  \\
+Qwen3-8B & GPT-4o& 5.56  \\
+Qwen3-72B & GPT-4o& 5.76  \\
+Qwen3-32B & GPT-4o& 6.13 \\
+\midrule
+Doubao-32K & Custom & 5.48  \\
+Qwen-max & Custom& 5.56   \\
+Deepseek-v3.1 & Custom&  \textbf{5.8}   \\
+GPT-4o & Custom& 5.19  \\
+GLM4-0414-9B & Custom& 5.55 \\
+GLM4.6 & Custom& 5.32 \\
+Qwen3-8B & Custom& 5.79 \\
+Qwen3-32B & Custom& 5.62 \\
+Qwen3-72B & Custom& 5.63  \\
+
+
+\bottomrule
+\end{tabular}
+\end{table}

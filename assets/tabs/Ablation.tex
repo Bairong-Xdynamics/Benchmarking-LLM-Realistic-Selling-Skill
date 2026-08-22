@@ -1,0 +1,21 @@
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccc}
+\toprule
+& \textbf{ROUGE-1} & \textbf{ROUGE-2} & \textbf{ROUGE-L} \\
+\midrule
+\textbf{Chinese} \\
+\quad salesLLM & \textbf{0.015} & \textbf{0.0} &\textbf{0.015}  \\
+\quad GPT-4o   &0.003  &0.0  &0.004  \\
+\addlinespace
+\textbf{English} \\
+\quad salesLLM &\textbf{0.113}&\textbf{0.024} &\textbf{0.108} \\
+\quad GPT-4o   & 0.054& 0.013 & 0.047 \\
+\bottomrule
+\end{tabular}
+\caption{Comparison of salesLLM and GPT-4o across ROUGE-1, ROUGE-2, and ROUGE-L on Chinese and English test sets.}
+\label{tab:rouge_lcs_compact}
+\end{table}

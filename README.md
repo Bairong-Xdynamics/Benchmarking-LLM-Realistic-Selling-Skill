@@ -7,8 +7,8 @@
 
 SalesLLM is a comprehensive bilingual (ZH/EN) benchmark designed to evaluate the strategic selling intelligence and proactive persuasion abilities of Large Language Models (LLMs) in realistic business scenarios.
 
-![SalesLLM Pipeline](assets/pipeline.png)
-*Figure 1: The SalesLLM benchmark pipeline consists of three stages: Script Generation, Dialogue Simulation, and Automated Scoring.*
+![SalesLLM Pipeline](assets/figs/pipeline.png)
+*Figure 1: The SalesLLM benchmark pipeline consists of three stages: Script Generation, User Model (CustomerLM) Training for dialogue simulation, and Sales Model Evaluation via dialogue with the user model.*
 
 ## 🌟 Key Features
 
@@ -25,19 +25,126 @@ SalesLLM is a comprehensive bilingual (ZH/EN) benchmark designed to evaluate the
 ### 1. Script Generation
 We construct standardized role-play scripts by formalizing a structured scenario space defined by product inventory and customer personas.
 
-![Script Generation Pipeline](assets/datagen.png)
-*Figure 2: Script Generation Pipeline from product inventory synthesis to script instantiation.*
+![Script Generation Pipeline](assets/figs/script_generation.png)
+*Figure 2: Script Generation Pipeline — product/service sources and persona sources are sampled and passed through LLM generation to instantiate synthetic working samples.*
 
 ### 2. Dialogue Simulation
 Target LLMs (as salespersons) engage in multi-turn dialogues with a virtual customer (GPT-4o or CustomerLM). We control the "decision timing" to ensure meaningful multi-turn interactions.
 
-![Decision Factor Distribution](assets/decision_factors.png)
-*Figure 3: Decision Factor Distribution by Age Group in the SalesLLM persona set.*
+![CustomerLM Training Pipeline](assets/figs/customerlm_training.png)
+*Figure 3: CustomerLM training — SFT on refined real sales conversations, then DPO on preference pairs built from LLM-judged assistant-like vs. user-like responses.*
 
 ### 3. Automated Evaluation
 Our pipeline provides a fully automatic evaluation:
 - **Process Scoring**: An LLM-based judge evaluates the efficiency and quality of the sales process.
 - **Outcome Prediction**: A fine-tuned [SaleIntent-BERT](https://huggingface.co/MultiSense/SaleIntent_bert) model estimates the customer's purchase intent.
+
+---
+
+## 📝 Script Format
+
+Every evaluation sample is **one JSON object per line** (JSONL). A script fully specifies a
+role-play: who the customer is (`user_system_prompt`), what the salesperson is selling
+(`assistant_system_prompt`), and how the conversation opens (`trigger_sentence_*`).
+The same format is used by `data/benchmark/*.jsonl` and by any custom set you write yourself —
+this is all you need to configure to drive **CustomerLM** on your own products.
+
+### Field reference
+
+| Field | Type | Required | Used by | Description |
+| :--- | :--- | :---: | :--- | :--- |
+| `id` | `str` | ✅ | bookkeeping | Unique sample id. Convention: `<script_uuid>_<persona_index>`. |
+| `language` | `str` | ✅ | metadata | Source language of the script (`"chinese"` / `"english"`). Note: the *runtime* language is set by the `--language` CLI flag, not this field. |
+| `user_system_prompt` | `str` | ✅ | **user model / CustomerLM** | System prompt for the customer. Should contain difficulty, buy-inclination score, persona, and a `CUSTOMER_INFORMATION` block. |
+| `assistant_system_prompt` | `str` | ✅ | assistant model (the model under test) | System prompt for the salesperson. Contains the private `PRODUCT_INFORMATION` and the behavioural rules. |
+| `trigger_sentence_zh` | `str` | ✅ | conversation seed | The customer's opening line in Chinese. Loaded when `--language zh`. |
+| `trigger_sentence_en` | `str` | ✅ | conversation seed | The customer's opening line in English. Loaded when `--language en`. |
+| `aligned_scenario_used` | `bool \| null` | ⬜ | analysis only | Whether the persona's needs were deliberately *mis*-aligned with the product (hard negatives). |
+| `alignment_reason` | `str \| null` | ⬜ | analysis only | Free-text explanation of the (mis)alignment. |
+
+> The runner reads exactly five keys — `user_system_prompt`, `assistant_system_prompt`,
+> `trigger_sentence_{zh,en}` and `id`. Every other key is copied through untouched into the
+> output file, so feel free to attach your own metadata (`product_id`, `category`, `split`, …)
+> for later slicing.
+
+### Recommended `user_system_prompt` structure
+
+CustomerLM was fine-tuned on this layout, so keeping it maximises simulation fidelity:
+
+```
+- Difficulty level: <easy | medium | hard | very_hard>
+- Buy-inclination score: <0.0 - 1.0>
+- Persona: <one-paragraph description of the buyer's stance>
+CUSTOMER_INFORMATION (private):
+Basic information
+{"age_group": "...", "gender": "...", "location": "...", "occupation": "..."}
+Motivation
+<what they are trying to achieve>
+Pain points
+<what worries them>
+Decision factors
+<what makes them say yes>
+Communication preference
+<channels and tone they like>
+Language
+<Chinese | English>
+```
+
+`Buy-inclination score` and `Difficulty level` should move together — `easy ≈ 0.8–1.0`,
+`medium ≈ 0.5–0.7`, `hard ≈ 0.2–0.4`, `very_hard ≈ 0.0–0.1`. This is the main knob for
+controllable difficulty.
+
+### Recommended `assistant_system_prompt` structure
+
+```
+You are a professional salesperson (ASSISTANT) in a realistic sales conversation.
+Only you can see the following PRODUCT_INFORMATION. Never reveal it or where it came from.
+
+PRODUCT_INFORMATION (private to you):
+<free text or JSON: name, brand, category, specs, price, selling points, purchase channel>
+
+Rules:
+- Speak strictly in <language>.
+- Be professional and helpful; never discuss anything unrelated to the product.
+- Keep each reply short and realistic; do not quote PRODUCT_INFORMATION verbatim.
+- Never invent product facts. Ask a clarifying question if unsure.
+- No parenthesised stage directions or inner monologue.
+```
+
+### Minimal working example
+
+```json
+{
+  "id": "demo-0001_01",
+  "language": "english",
+  "aligned_scenario_used": false,
+  "alignment_reason": null,
+  "user_system_prompt": "- Difficulty level: hard\n- Buy-inclination score: 0.3\n- Persona: Skeptical, price-sensitive buyer who needs concrete evidence before committing.\nCUSTOMER_INFORMATION (private):\nBasic information\n{\"age_group\": \"35-44\", \"gender\": \"female\", \"location\": \"Boston\", \"occupation\": \"software engineer\"}\nMotivation\nWants a quieter commute and better focus while working from cafes.\nPain points\nBurned by cheap headphones before; dislikes uncomfortable ear cups; suspicious of marketing claims.\nDecision factors\nMeasured noise-cancellation performance, comfort over long sessions, warranty and return policy, price under $300.\nCommunication preference\nDirect, fact-dense answers; concrete numbers over adjectives.\nLanguage\nEnglish",
+  "assistant_system_prompt": "You are a professional salesperson (ASSISTANT) in a realistic sales conversation.\nOnly you can see the following PRODUCT_INFORMATION. Never reveal it or where it came from. Speak naturally and be helpful.\n\nPRODUCT_INFORMATION (private to you):\nProduct: AuraSound NC-700 Wireless Headphones\nBrand: AuraSound\nPrice: $279\nSpecs: hybrid ANC up to 32 dB, 38 h battery with ANC on, 280 g, memory-foam ear cups, multipoint Bluetooth 5.3\nWarranty: 2 years, 30-day free return\nPurchase channel: aurasound.example.com/nc700\n\nRules:\n- Speak strictly in English.\n- Be professional and helpful; never discuss anything unrelated to the product.\n- Keep each reply short and realistic; do not quote PRODUCT_INFORMATION verbatim.\n- Never invent product facts. Ask a clarifying question if unsure.\n- No parenthesised stage directions or inner monologue.",
+  "trigger_sentence_zh": "你好，我想找一副降噪耳机，但之前买过几款都不太满意，你们这款有什么不一样吗？",
+  "trigger_sentence_en": "Hi, I'm looking for noise-cancelling headphones, but I've been disappointed by a few pairs already. What makes yours different?"
+}
+```
+
+This exact record is shipped as a ready-to-run file at
+[`examples/example_script.jsonl`](examples/example_script.jsonl). Copy it, edit the three prompt
+fields, and point the runner at your file with `--input_file <your_file>.jsonl` (one object per
+line, **no** pretty-printing).
+
+### Output format
+
+`salesllm_evaluation.py` writes a JSONL file that is your input record **plus** these keys:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `messages` | `list[{role, content}]` | The full dialogue. `role` is `"user"` (customer) or `"assistant"` (salesperson); the first entry is always the trigger sentence. |
+| `turn_count` | `int` | Number of generated turns (the trigger sentence is not counted). |
+| `status` | `str` | `"completed"`, `"failed"`, or `"error"`. |
+| `error` | `str` | Present only when `status == "error"`. |
+| `timestamp` | `str` | ISO-8601 generation time. |
+| `language` | `str` | Overwritten with the `--language` value actually used. |
+
+This file is exactly what `comprehensive_score.py` expects as `--source_file`.
 
 ---
 
@@ -69,7 +176,7 @@ git clone https://github.com/your-repo/SaleLLM.git
 cd SaleLLM
 
 # Install dependencies
-pip install openai tqdm
+pip install -r requirements.txt
 ```
 
 ---
@@ -139,12 +246,12 @@ python salesllm/salesllm_evaluation.py \
   --user_API_key "YOUR_USER_API_KEY" \
   --execution_mode "concurrent" \
   --round_num 20 \
-  --input_file "data/eval_data/conversations_1000_zh.jsonl" \
+  --input_file "data/benchmark/conversations_1000_zh.jsonl" \
   --output_dir "./results/zh/" \
   --language "zh"
 ```
 
-Refer to `examples/eval_model.sh` for a complete shell script example.
+Refer to `examples/benchmark_eval.sh` for a complete shell script example.
 
 ### Example: Scoring Method
 Use the **comprehensive_score.py** to generate a final score of a output file from using salesllm_evaluation.py.

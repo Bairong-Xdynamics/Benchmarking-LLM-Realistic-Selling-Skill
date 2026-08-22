@@ -63,10 +63,10 @@ run_eval() {
 }
 
 # 1. Run Chinese (zh) evaluation
-run_eval "zh" "./data/eval_data/conversations_1000_zh.jsonl" "./results/zh/"
+run_eval "zh" "./data/benchmark/conversations_1000_zh.jsonl" "./results/zh/"
 
 # 2. Run English (en) evaluation
-run_eval "en" "./data/eval_data/conversations_805_en.jsonl" "./results/en/"
+run_eval "en" "./data/benchmark/conversations_805_en.jsonl" "./results/en/"
 
 echo "----------------------------------------------------------------"
 echo "All evaluations completed."

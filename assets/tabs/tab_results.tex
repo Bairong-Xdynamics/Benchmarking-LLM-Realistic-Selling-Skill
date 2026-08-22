@@ -1,0 +1,35 @@
+\begin{table}[t]
+\centering
+\small
+\caption{Main evaluation results on 1000 Chinese scripts. 'Human' indicates the human scores and 'Ours' indicates the SalesLLM scores. All the scores are averaged across the scripts amount. 'Custom' indicates the model is our user-based model.}
+\label{tab:main_res_tab}
+\begin{tabular}{cccc}
+\toprule
+\textbf{Assistant} & \textbf{User} & \textbf{Human} & \textbf{Ours}\\
+\midrule
+Doubao-32K & GPT-4o & 6.5 & 6.07 \\
+Qwen-max & GPT-4o& 6.48 & 6.02  \\
+Deepseek-chat & GPT-4o& 6.74 &6.46  \\
+GPT-4o & GPT-4o& 6.16 &5.72 \\
+GLM4-0414-9B~\shortcite{glm4_9b_0414_2025} & GPT-4o& - &6.01 \\
+GLM4.6 & GPT-4o& - &\textbf{6.74} \\
+Gemini 2.5 pro & GPT-4o& - &6.52 \\
+Qwen3-8B~\shortcite{qwen3_2025} & GPT-4o& - &5.4 \\
+Qwen3-72B~\shortcite{qwen3_2025} & GPT-4o& - &6.06 \\
+Qwen3-32B~\shortcite{qwen3_2025} & GPT-4o& -& 5.81 \\
+Human & GPT-4o& - &6.11 \\
+\midrule
+Doubao-32K & Custom & - & 6.89 \\
+Qwen-max & Custom& - & 5.55  \\
+Deepseek-v3.1 & Custom& - &7.03  \\
+GPT-4o & Custom& - &6.15 \\
+GLM4-0414-9B & Custom& - &\textbf{7.14}\\
+GLM4.6 & Custom& - &6.86 \\
+Qwen3-8B & Custom& - &5.64 \\
+Qwen3-32B & Custom& -& 5.79 \\
+Qwen3-72B & Custom& - &5.7 \\
+
+
+\bottomrule
+\end{tabular}
+\end{table}
