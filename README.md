@@ -1,7 +1,9 @@
 # SalesLLM: Benchmarking LLM Realistic Selling Skill
 
 🎆🎆🎆 **This Paper has been accepted by EMNLP 2026 as Main Paper**
+
 If you like this, please leave us a start🌟🌟
+
 CustomerLM: [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-CustomerLM-orange)](https://huggingface.co/MultiSense/CustomerLM)
 SaleIntent_bert: [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-SaleIntent--BERT-orange)](https://huggingface.co/MultiSense/SaleIntent_bert)
 10KData: [![Data](https://img.shields.io/badge/Data-Google%20Drive-blue)](https://drive.google.com/file/d/1S7yKYaWeE7Bc7x-87GAE9-u8RbLaov24/view?pli=1)
