@@ -1,10 +1,10 @@
 # SalesLLM: Benchmarking LLM Realistic Selling Skill
 
 🎆🎆🎆 **This Paper has been accepted by EMNLP 2026 as Main Paper**
-
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-CustomerLM-orange)](https://huggingface.co/MultiSense/CustomerLM)
-[![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-SaleIntent--BERT-orange)](https://huggingface.co/MultiSense/SaleIntent_bert)
-[![Data](https://img.shields.io/badge/Data-Google%20Drive-blue)](https://drive.google.com/file/d/1S7yKYaWeE7Bc7x-87GAE9-u8RbLaov24/view?pli=1)
+If you like this, please leave us a start🌟🌟
+CustomerLM: [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-CustomerLM-orange)](https://huggingface.co/MultiSense/CustomerLM)
+SaleIntent_bert: [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-SaleIntent--BERT-orange)](https://huggingface.co/MultiSense/SaleIntent_bert)
+10KData: [![Data](https://img.shields.io/badge/Data-Google%20Drive-blue)](https://drive.google.com/file/d/1S7yKYaWeE7Bc7x-87GAE9-u8RbLaov24/view?pli=1)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 
 SalesLLM is a comprehensive bilingual (ZH/EN) benchmark designed to evaluate the strategic selling intelligence and proactive persuasion abilities of Large Language Models (LLMs) in realistic business scenarios.
