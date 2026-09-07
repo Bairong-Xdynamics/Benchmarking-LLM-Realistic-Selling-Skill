@@ -2,7 +2,7 @@
 
 🎆🎆🎆 **This Paper has been accepted by EMNLP 2026 as Main Paper**
 
-If you like this, please leave us a start🌟🌟
+If you like this, please leave us a ratting🌟🌟
 
 CustomerLM: [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-CustomerLM-orange)](https://huggingface.co/MultiSense/CustomerLM)
 SaleIntent_bert: [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-SaleIntent--BERT-orange)](https://huggingface.co/MultiSense/SaleIntent_bert)
